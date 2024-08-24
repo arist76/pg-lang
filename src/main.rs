@@ -1,11 +1,15 @@
-use std::collections::HashMap;
 use std::io::{self, Write};
 use std::env;
 use std::fs;
 
+mod token;
+mod scanner;
+mod exceptions;
+
+use exceptions::PrintException;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-
     if args.len() == 2 {
         run_file(&args[1]);
     } else {
@@ -15,76 +19,45 @@ fn main() {
             let mut line_inp = String::new();
             match io::stdin().read_line(&mut line_inp) {
                 Ok(_) => run_interactive(&line_inp),
-                Err(_) => FileException::new().raise() 
+                Err(_) =>  print(&"Error reading input".to_string()),
             }
         }
     }
 }
 
 fn run_file(file_path : &String) -> () {
-    let contents : String = match fs::read_to_string(file_path.clone()) {
+    let contents : String = match fs::read_to_string(&file_path) {
         Ok(contents) => contents,
-        Err(_) => format!("{:?}", format_args!("Error reading file: {}", file_path.clone()))
+        Err(_) => {
+            print(&"Error reading file".to_string());
+            std::process::exit(1);
+        }
     };
 
-    for line in contents.lines() {
-        println!("{}", line);
+    for (i, line) in contents.lines().enumerate() {
+        run(line.to_string(),i as u64 + 1);
     }
-
 }
 
 fn run_interactive(line_inp : &String) {
     print(line_inp);
 }
 
-//fn run() {
-//}
+fn run(source : String, line : u64) {
+    let mut scanner = scanner::Scanner::new(source, line);
+    scanner.start();
 
-fn print(msg : &String) {
+    for exception in &mut scanner.exceptions {
+        exception.print_exception();
+    }
+
+    for token in &mut scanner.tokens {
+        println!("Token {:?}", token);
+    }
+}
+
+fn print(msg : &str) {
     print!("{}", msg);
     io::stdout().flush().unwrap();
-}
-
-trait Exception<T> {
-    fn new() -> T;
-    fn raise(&self) -> ();
-}
-
-struct FileException {
-    msg : String,
-    //context : Option<HashMap<String, String>>
-}
-
-impl Exception<FileException> for FileException {
-    fn new() -> FileException {
-        FileException {
-            msg : String::new(),
-            //context : None
-        }
-    }
-
-    fn raise(&self) -> () {
-        println!("Error: {}", self.msg);
-    }
-}
-
-enum Command {
-    Exit(T)
-}
-
-impl Command {
-    fn execute(&self) -> () {
-        match self {
-            Command::Exit => Self::run_exit(),
-        }
-    }
-
-    fn run_exit() -> () {
-        print(&"Bye!".to_string());
-    }
-
-    fn parse_token -> () {
-
-    }
 }
 
