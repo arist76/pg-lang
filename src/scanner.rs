@@ -1,5 +1,5 @@
 use crate::exceptions::{BaseException, SyntaxException};
-use crate::token::{Token, TokenType};
+use crate::token::{keywords, Token, TokenType};
 
 pub struct Scanner {
     pub source: String,
@@ -24,7 +24,7 @@ impl Scanner {
 
     pub fn next(&mut self) -> Option<char> {
         // TODO: handle overflow on implicit conversion u64 -> usize
-        let r = self.source.chars().nth(self.current as usize);
+        let r = self.source.chars().nth(self.current);
         self.current += 1;
         r
     }
@@ -54,53 +54,28 @@ impl Scanner {
             '/' => Some(TokenType::SLASH),
             '*' => Some(TokenType::STAR),
             '#' => self.scan_comment(), // comment
-            '!' => self.scan_double_character(
-                '=',
-                TokenType::BANG,
-                TokenType::BANG_EQUAL,
-            ),
-            '=' => self.scan_double_character(
-                '=',
-                TokenType::EQUAL,
-                TokenType::EQUAL_EQUAL,
-            ),
-            '>' => self.scan_double_character(
-                '=',
-                TokenType::GREATER,
-                TokenType::GREATER_EQUAL,
-            ),
-            '<' => self.scan_double_character(
-                '=',
-                TokenType::LESS,
-                TokenType::LESS_EQUAL,
-            ),
+            '!' => self.scan_double_character('=', TokenType::BANG, TokenType::BANG_EQUAL),
+            '=' => self.scan_double_character('=', TokenType::EQUAL, TokenType::EQUAL_EQUAL),
+            '>' => self.scan_double_character('=', TokenType::GREATER, TokenType::GREATER_EQUAL),
+            '<' => self.scan_double_character('=', TokenType::LESS, TokenType::LESS_EQUAL),
             '"' => self.scan_string(),
+            '0'..='9' => self.scan_number(), // floating number
             // pass whitespace
             ' ' | '\r' | '\t' => None,
             // append all other characters as exceptions
-            '\0'..='\'' | ')'..='\u{d7ff}' | '\u{e000}'..='\u{10ffff}' => {
-                self.exceptions.push(SyntaxException::new(
-                    format!("Unexpected character {}", c),
-                    self.line,
-                    self.current,
-                ));
-                None
-            }
+            _ => self.scan_symbol(),
         }
     }
 
-    pub fn scan_string(&mut self) -> Option<TokenType>{
-        let unterminated_string_exception = SyntaxException::new(
-            "Unterminated string".to_string(),
-            self.line,
-            self.current,
-        );
+    pub fn scan_string(&mut self) -> Option<TokenType> {
+        let unterminated_string_exception =
+            SyntaxException::new("Unterminated string".to_string(), self.line, self.current);
         let mut scanned_string = String::new();
-        let s = match self.next() {
+        let mut s = match self.next() {
             Some(c) => c,
             None => {
                 self.exceptions.push(unterminated_string_exception);
-                return None
+                return None;
             }
         };
 
@@ -112,6 +87,14 @@ impl Scanner {
                 return Some(TokenType::STRING(scanned_string));
             } else {
                 scanned_string.push(s);
+            };
+
+            s = match self.next() {
+                Some(c) => c,
+                None => {
+                    self.exceptions.push(unterminated_string_exception);
+                    return None;
+                }
             };
         }
         Some(TokenType::STRING(scanned_string))
@@ -130,9 +113,9 @@ impl Scanner {
 
     pub fn scan_double_character(
         &mut self,
-        next_char : char,
-        initial_token : TokenType,
-        double_token : TokenType
+        next_char: char,
+        initial_token: TokenType,
+        double_token: TokenType,
     ) -> Option<TokenType> {
         if Some(next_char) == self.next_peek() {
             self.next(); // skip the next character
@@ -144,15 +127,60 @@ impl Scanner {
 
     pub fn scan_number(&mut self) -> Option<TokenType> {
         let mut number_str = String::new();
-        while let Some(c) = self.next_peek() {
-            if !c.is_ascii_digit() || c != '.' {
-                break;
-            } else {
-                number_str.push(c);
-            }
+        let mut c = self.source.chars().nth(self.current - 1).unwrap(); // unwrap-is-safe
+                                                                        // and is always a number
+        while c.is_ascii_digit() || c == '.' {
+            number_str.push(c);
+            c = match self.next_peek() {
+                Some(c) => c,
+                None => break,
+            };
+
+            //if !c.is_ascii_digit() && c != '.' {
+            //    if !c.is_whitespace() {
+            //        self.exceptions.push(SyntaxException::new(
+            //            format!("Unexpected character {}", c),
+            //            self.line,
+            //            self.current,
+            //        ));
+            //    }
+            //    break;
+            //}
             self.next();
         }
         Some(TokenType::NUMBER(number_str.parse().unwrap()))
+    }
+
+    pub fn scan_symbol(&mut self) -> Option<TokenType> {
+        let kw = keywords();
+        let mut symbol_str = String::new();
+        let mut c = match self.source.chars().nth(self.current - 1) {
+            Some(cc) => cc,
+            None => return None,
+        };
+
+        if !c.is_alphabetic() && c != '_' {  // variables/keywords only start with alphabets and _
+            self.exceptions.push(SyntaxException::new(
+                format!("Unexpected character {}", c),
+                self.line,
+                self.current,
+            ));
+        }
+
+        while c.is_alphanumeric() || c == '_' {
+            // finish scanning the symbol if the character is a whitespace
+            symbol_str.push(c);
+
+            c = match self.next() {
+                Some(cc) => cc,
+                None => break,
+            };
+        }
+
+        match kw.get(symbol_str.as_str()) {
+            Some(token_type) => Some(token_type.clone()),
+            None => Some(TokenType::IDENTIFIER(symbol_str)),
+        }
     }
 
     pub fn start(&mut self) -> () {
