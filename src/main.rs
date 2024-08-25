@@ -52,7 +52,7 @@ fn run(source : String, line : usize) {
     }
 
     for token in &mut scanner.tokens {
-        println!("Token {:?}", token);
+        println!("|--> {:?}", token);
     }
 }
 
