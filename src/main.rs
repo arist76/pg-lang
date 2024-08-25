@@ -35,7 +35,7 @@ fn run_file(file_path : &String) -> () {
     };
 
     for (i, line) in contents.lines().enumerate() {
-        run(line.to_string(),i as u64 + 1);
+        run(line.to_string(),i + 1);
     }
 }
 
@@ -43,7 +43,7 @@ fn run_interactive(line_inp : &String) {
     print(line_inp);
 }
 
-fn run(source : String, line : u64) {
+fn run(source : String, line : usize) {
     let mut scanner = scanner::Scanner::new(source, line);
     scanner.start();
 

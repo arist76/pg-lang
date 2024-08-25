@@ -28,11 +28,11 @@ pub enum TokenType {
 #[derive(Debug)]
 pub struct Token {
     pub token_type: TokenType,
-    pub line: u64
+    pub line: usize
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, line: u64) -> Token {
+    pub fn new(token_type: TokenType, line: usize) -> Token {
         Token { token_type, line }
     }
 }

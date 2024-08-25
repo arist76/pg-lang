@@ -3,8 +3,8 @@ pub trait PrintException {
 }
 pub struct BaseException {
     msg: String,
-    line: u64,
-    col: u64,
+    line: usize,
+    col: usize,
 }
 
 pub struct SyntaxException {
@@ -13,23 +13,21 @@ pub struct SyntaxException {
 
 impl PrintException for SyntaxException {
     fn print_exception(&self) -> () {
-        let line: &str = if self.exception.line == 0 {
-            ""
-        } else {
-            &format!(" at line {}", self.exception.line)
-        };
-        println!("\x1b[31mSyntax Error\x1b[0m{}: {}", line, self.exception.msg);
+        println!(
+            "\x1b[31mSyntax Error\x1b[0m at {}:{}\n\t {}",
+            self.exception.line, self.exception.col, self.exception.msg
+        );
     }
 }
 
 impl BaseException {
-    pub fn new(msg: String, line: u64, col: u64) -> BaseException {
+    pub fn new(msg: String, line: usize, col: usize) -> BaseException {
         BaseException { msg, line, col }
     }
 }
 
 impl SyntaxException {
-    pub fn new(msg: String, line: u64, col: u64) -> SyntaxException {
+    pub fn new(msg: String, line: usize, col: usize) -> SyntaxException {
         SyntaxException {
             exception: BaseException::new(msg, line, col),
         }
