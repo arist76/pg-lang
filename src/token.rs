@@ -1,5 +1,6 @@
+use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
     // Single characters
     LEFT_PAREN, RIGHT_PAREN,
@@ -20,7 +21,7 @@ pub enum TokenType {
     AND, ELSE, ELIF,
     FALSE, FN, FOR,
     IF, NONE, OR,
-    PRINT, RETURN, SUPER,
+    RETURN, SUPER,
     THIS, TRUE, LET, WHILE,
     DO, EOF
 }
@@ -28,11 +29,33 @@ pub enum TokenType {
 #[derive(Debug)]
 pub struct Token {
     pub token_type: TokenType,
-    pub line: usize
+    pub line: usize,
 }
 
 impl Token {
     pub fn new(token_type: TokenType, line: usize) -> Token {
         Token { token_type, line }
     }
+}
+
+pub fn keywords() -> HashMap<&'static str, TokenType> {
+    let mut kw = HashMap::new();
+    kw.insert("and", TokenType::AND);
+    kw.insert("else", TokenType::ELSE);
+    kw.insert("elif", TokenType::ELIF);
+    kw.insert("false", TokenType::FALSE);
+    kw.insert("fn", TokenType::FN);
+    kw.insert("for", TokenType::FOR);
+    kw.insert("if", TokenType::IF);
+    kw.insert("none", TokenType::NONE);
+    kw.insert("or", TokenType::OR);
+    kw.insert("return", TokenType::RETURN);
+    kw.insert("super", TokenType::SUPER);
+    kw.insert("this", TokenType::THIS);
+    kw.insert("true", TokenType::TRUE);
+    kw.insert("let", TokenType::LET);
+    kw.insert("while", TokenType::WHILE);
+    kw.insert("do", TokenType::DO);
+    kw
+
 }
